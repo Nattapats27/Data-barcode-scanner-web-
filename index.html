@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barcode Scanner & Automated Excel Export</title>
+    <script src="https://unpkg.com/@ericblade/quagga2"></script> <!-- Barcode Scanner Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.1/xlsx.full.min.js"></script> <!-- Excel Export Library -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        #barcode-scanner {
+            width: 100%;
+            max-width: 500px;
+            margin: 20px auto;
+            border: 1px solid #ddd;
+        }
+        #data-table {
+            margin-top: 20px;
+            width: 100%;
+            border-collapse: collapse;
+        }
+        #data-table th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        button {
+            margin: 10px;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Barcode Scanner - Automated Excel Export</h2>
+
+<!-- Barcode Scanner Video Input -->
+<video id="barcode-scanner" width="100%" height="auto"></video>
+
+<!-- Table to display scanned data -->
+<table id="data-table">
+    <thead>
+        <tr>
+            <th>Barcode</th>
+            <th>Product Name</th>
+            <th>Quantity</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Scanned data will be populated here -->
+    </tbody>
+</table>
+
+<!-- The button is optional if you want to export manually -->
+<button id="export-btn" style="display:none;">Export to Excel</button>
+
+<script>
+    // Initialize QuaggaJS barcode scanner
+    Quagga.init({
+        inputStream: {
+            name: "Live",
+            type: "LiveStream",
+            target: document.querySelector('#barcode-scanner'), // Video element
+            constraints: {
+                facingMode: "environment" // Use the rear camera (for mobile devices)
+            }
+        }, 
+        decoder: {
+            readers: ["code_128_reader", "ean_reader", "ean_8_reader", "upc_reader", "code_39_reader"]
+        }
+    }, function(err) {
+        if (err) {
+            console.error("Barcode scanner initialization failed:", err);
+            return;
+        }
+        Quagga.start();
+    });
+
+    // Scanned data will be stored in this array
+    let scannedData = [];
+
+    // Listen for barcode scanning event
+    Quagga.onDetected(function(result) {
+        let barcode = result.codeResult.code;
+        
+        // Sample product data based on the barcode (You can modify this to fetch from a database or API)
+        let productName = "Product " + barcode; // Replace with actual product name lookup
+        let quantity = 1; // Default to 1, can be modified based on your needs
+
+        // Store the scanned data
+        scannedData.push({ barcode, productName, quantity });
+
+        // Add the scanned data to the table
+        let tableBody = document.querySelector("#data-table tbody");
+        let newRow = tableBody.insertRow();
+        newRow.innerHTML = `
+            <td>${barcode}</td>
+            <td>${productName}</td>
+            <td>${quantity}</td>
+        `;
+
+        // Automatically export data to Excel after each scan (can be adjusted as needed)
+        autoExportToExcel();
+    });
+
+    // Automatically Export scanned data to Excel after each scan
+    function autoExportToExcel() {
+        const ws = XLSX.utils.json_to_sheet(scannedData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Scanned Data");
+
+        // Generate an Excel file and trigger download
+        XLSX.writeFile(wb, "scanned_data.xlsx");
+    }
+</script>
+
+</body>
+</html>
